@@ -338,10 +338,12 @@ class AppShell extends ConsumerWidget {
         alignment: AlignmentDirectional.centerStart,
         child: Text(
           title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: AppColors.sidebarIcon,
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w600,
+            fontSize: 15.sp,
+            fontWeight: FontWeight.bold,
             fontFamily: 'Cairo',
             letterSpacing: 0.5,
           ),
@@ -399,15 +401,19 @@ class AppShell extends ConsumerWidget {
                 ),
                 if (!isCollapsed) ...[
                   SizedBox(width: 12.w),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: isActive
-                          ? AppColors.sidebarTextActive
-                          : AppColors.sidebarText,
-                      fontSize: 18.sp,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                      fontFamily: 'Cairo',
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isActive
+                            ? AppColors.sidebarTextActive
+                            : AppColors.sidebarText,
+                        fontSize: 16.sp,
+                        fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+                        fontFamily: 'Cairo',
+                      ),
                     ),
                   ),
                 ],

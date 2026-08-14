@@ -51,7 +51,16 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
       db.productBarcodes,
     )..where((t) => t.barcode.equals(cleaned))).getSingleOrNull();
 
+    Product? foundProduct;
     if (barcodeRecord != null) {
+      foundProduct = await (db.select(db.products)
+        ..where((t) => t.id.equals(barcodeRecord.productId))).getSingleOrNull();
+    }
+
+    foundProduct ??= await (db.select(db.products)
+      ..where((t) => t.internalCode.equals(cleaned))).getSingleOrNull();
+
+    if (foundProduct != null) {
       setState(() {
         _searchQuery = cleaned;
         _searchController.text = cleaned;
@@ -59,11 +68,19 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
       if (mounted) {
         AppErrorHandler.showSuccessSnackBar(
           context,
-          'تم العثور على المنتج بالباركود: $cleaned',
+          'تم العثور على المنتج: ${foundProduct.nameAr}',
         );
       }
     } else {
+      setState(() {
+        _searchQuery = cleaned;
+        _searchController.text = cleaned;
+      });
       if (mounted) {
+        AppErrorHandler.showWarningSnackBar(
+          context,
+          'الباركود "$cleaned" غير مسجل. يمكنك إضافته الآن.',
+        );
         _showAddProductDialog(initialBarcode: cleaned);
       }
     }
@@ -170,6 +187,7 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(productsStreamProvider);
     final categoriesAsync = ref.watch(categoriesStreamProvider);
+    final barcodesAsync = ref.watch(productBarcodesStreamProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -195,7 +213,7 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'عرض، إضافة، وتعديل المنتجات وأسعار الجملة والتجزئة',
+                        'عرض، إضافة، وتعديل المنتجات وأسعار الجملة والتجزئة والباركود',
                         style: TextStyle(
                           fontSize: 14,
                           color: AppColors.textSecondary,
@@ -261,19 +279,21 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
                       controller: _searchController,
                       onChanged: (val) =>
                           setState(() => _searchQuery = val.trim()),
+                      style: const TextStyle(fontFamily: 'Cairo', fontSize: 15),
                       decoration: InputDecoration(
                         hintText: 'بحث بالاسم، الكود، أو الباركود...',
+                        hintStyle: const TextStyle(fontFamily: 'Cairo', fontSize: 14),
                         prefixIcon: const Icon(
                           LucideIcons.search,
-                          size: 18,
+                          size: 20,
                           color: AppColors.textSecondary,
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
+                          horizontal: 14,
+                          vertical: 12,
                         ),
                       ),
                     ),
@@ -285,14 +305,14 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
                         value: _selectedCategoryId,
                         hint: const Text(
                           'كل التصنيفات',
-                          style: TextStyle(fontFamily: 'Cairo'),
+                          style: TextStyle(fontFamily: 'Cairo', fontSize: 15),
                         ),
                         items: [
                           const DropdownMenuItem<int?>(
                             value: null,
                             child: Text(
                               'كل التصنيفات',
-                              style: TextStyle(fontFamily: 'Cairo'),
+                              style: TextStyle(fontFamily: 'Cairo', fontSize: 15),
                             ),
                           ),
                           ...categories.map(
@@ -300,7 +320,7 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
                               value: c.id,
                               child: Text(
                                 c.name,
-                                style: const TextStyle(fontFamily: 'Cairo'),
+                                style: const TextStyle(fontFamily: 'Cairo', fontSize: 15),
                               ),
                             ),
                           ),
@@ -326,14 +346,24 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
                 ),
                 child: productsAsync.when(
                   data: (products) {
+                    final allBarcodes = barcodesAsync.asData?.value ?? [];
+                    final matchingBarcodeProductIds = allBarcodes
+                        .where((b) =>
+                            _searchQuery.isNotEmpty &&
+                            b.barcode.toLowerCase().contains(_searchQuery.toLowerCase()))
+                        .map((b) => b.productId)
+                        .toSet();
+
                     final filtered = products.where((p) {
-                      final matchesSearch =
-                          _searchQuery.isEmpty ||
-                          p.nameAr.contains(_searchQuery) ||
+                      final query = _searchQuery.toLowerCase();
+                      final matchesSearch = query.isEmpty ||
+                          p.nameAr.toLowerCase().contains(query) ||
+                          (p.nameEn != null &&
+                              p.nameEn!.toLowerCase().contains(query)) ||
                           (p.internalCode != null &&
-                              p.internalCode!.contains(_searchQuery));
-                      final matchesCat =
-                          _selectedCategoryId == null ||
+                              p.internalCode!.toLowerCase().contains(query)) ||
+                          matchingBarcodeProductIds.contains(p.id);
+                      final matchesCat = _selectedCategoryId == null ||
                           p.categoryId == _selectedCategoryId;
                       return matchesSearch && matchesCat;
                     }).toList();
@@ -384,13 +414,28 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
                         final isLowStock =
                             product.currentQuantity <= product.minQuantity;
 
+                        final productBarcodes = allBarcodes
+                            .where((b) => b.productId == product.id)
+                            .toList();
+                        final primaryBarcode = productBarcodes.firstWhere(
+                          (b) => b.isPrimary,
+                          orElse: () => productBarcodes.isNotEmpty
+                              ? productBarcodes.first
+                              : const ProductBarcode(
+                                  id: -1,
+                                  productId: -1,
+                                  barcode: '',
+                                  isPrimary: false,
+                                ),
+                        );
+
                         return InkWell(
                           onTap: () => _showProductDetailsDialog(product),
                           borderRadius: BorderRadius.circular(8),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
-                              vertical: 8,
+                              vertical: 10,
                             ),
                             child: Row(
                               children: [
@@ -421,7 +466,7 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
                                             product.nameAr,
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 15,
+                                              fontSize: 16,
                                               fontFamily: 'Cairo',
                                             ),
                                           ),
@@ -433,32 +478,73 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
                                             Container(
                                               padding:
                                                   const EdgeInsets.symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2,
-                                                  ),
+                                                horizontal: 6,
+                                                vertical: 2,
+                                              ),
                                               decoration: BoxDecoration(
                                                 color: Colors.grey.shade200,
                                                 borderRadius:
                                                     BorderRadius.circular(4),
                                               ),
                                               child: Text(
-                                                product.internalCode!,
+                                                'كود: ${product.internalCode!}',
                                                 style: const TextStyle(
-                                                  fontSize: 11,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
                                                   color:
                                                       AppColors.textSecondary,
+                                                  fontFamily: 'Cairo',
                                                 ),
+                                              ),
+                                            ),
+                                          ],
+                                          if (primaryBarcode.barcode.isNotEmpty) ...[
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primarySurface,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                border: Border.all(
+                                                  color: AppColors.primary
+                                                      .withValues(alpha: 0.3),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                    LucideIcons.qrCode,
+                                                    size: 13,
+                                                    color: AppColors.primary,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    primaryBarcode.barcode,
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: AppColors.primary,
+                                                      fontFamily: 'Cairo',
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                           ],
                                         ],
                                       ),
-                                      const SizedBox(height: 2),
+                                      const SizedBox(height: 4),
                                       Text(
                                         'شراء: ${product.purchasePrice.toStringAsFixed(2)} | قطاعي: ${product.retailPrice.toStringAsFixed(2)} | جملة: ${product.wholesalePrice.toStringAsFixed(2)} ج.م',
                                         style: const TextStyle(
                                           color: AppColors.textSecondary,
-                                          fontSize: 13,
+                                          fontSize: 14,
                                           fontFamily: 'Cairo',
                                         ),
                                       ),

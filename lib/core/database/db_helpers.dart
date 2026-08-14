@@ -264,6 +264,12 @@ class DbHelpers {
   static Future<int> deleteProduct(AppDatabase db, int id) {
     return db.transaction(() async {
       await (db.delete(db.productBarcodes)..where((t) => t.productId.equals(id))).go();
+      await (db.delete(db.stockMovements)..where((t) => t.productId.equals(id))).go();
+      await (db.delete(db.inventoryCountItems)..where((t) => t.productId.equals(id))).go();
+      await (db.delete(db.invoiceItems)..where((t) => t.productId.equals(id))).go();
+      await (db.delete(db.salesReturnItems)..where((t) => t.productId.equals(id))).go();
+      await (db.delete(db.purchaseItems)..where((t) => t.productId.equals(id))).go();
+      await (db.delete(db.purchaseReturnItems)..where((t) => t.productId.equals(id))).go();
       return (db.delete(db.products)..where((t) => t.id.equals(id))).go();
     });
   }
