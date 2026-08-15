@@ -22,9 +22,9 @@ class SettingsView extends ConsumerStatefulWidget {
 }
 
 class _SettingsViewState extends ConsumerState<SettingsView> {
-  String _storeName = 'أبو وائل لتجارة الجملة والقطاعي';
-  String _phone1 = '';
-  String _phone2 = '';
+  String _storeName = 'ابووائل للجمله';
+  String _phone1 = '01100998058';
+  String _phone2 = '01214291376';
 
   @override
   void initState() {
@@ -185,9 +185,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   void _showInvoiceSettingsDialog(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     String storeName =
-        prefs.getString('store_name') ?? 'أبو وائل لتجارة الجملة والقطاعي';
-    String phone1 = prefs.getString('store_phone1') ?? '';
-    String phone2 = prefs.getString('store_phone2') ?? '';
+        prefs.getString('store_name') ?? 'ابووائل للجمله';
+    String phone1 = prefs.getString('store_phone1') ?? '01100998058';
+    String phone2 = prefs.getString('store_phone2') ?? '01214291376';
 
     final nameController = TextEditingController(text: storeName);
     final phone1Controller = TextEditingController(text: phone1);

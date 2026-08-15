@@ -126,9 +126,9 @@ class ReceiptPrinter {
 
     // Store identity shown in the receipt header (managed from settings)
     final storeName =
-        prefs.getString('store_name') ?? 'أبو وائل لتجارة الجملة والقطاعي';
-    final phone1 = prefs.getString('store_phone1') ?? '';
-    final phone2 = prefs.getString('store_phone2') ?? '';
+        prefs.getString('store_name') ?? 'ابووائل للجمله';
+    final phone1 = prefs.getString('store_phone1') ?? '01100998058';
+    final phone2 = prefs.getString('store_phone2') ?? '01214291376';
     final phones = [phone1, phone2]
         .where((p) => p.trim().isNotEmpty)
         .join(' - ');
