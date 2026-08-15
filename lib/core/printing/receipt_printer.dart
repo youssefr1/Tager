@@ -148,6 +148,11 @@ class ReceiptPrinter {
     doc.addPage(
       pw.Page(
         pageFormat: pageFormat,
+        theme: pw.ThemeData.withFont(
+          base: regular,
+          bold: bold,
+        ),
+        textDirection: pw.TextDirection.rtl,
         build: (context) {
           return pw.Directionality(
             textDirection: pw.TextDirection.rtl,
