@@ -28,7 +28,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows Desktop Release
-        run: flutter build windows --release
+        run: flutter build windows --release -v
 
       - name: Create Release Zip Package
         run: |
